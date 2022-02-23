@@ -26,6 +26,10 @@
 *.a
 *.lib
 
+# Tables
+*.tbl
+*.bin
+
 # Executables
 *.exe
 *.out
