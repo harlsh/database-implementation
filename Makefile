@@ -1,4 +1,4 @@
-CC = g++ -O2 -Wno-deprecated 
+CC = g++ -O2 -Wno-deprecated
 
 tag = -i
 
@@ -16,25 +16,25 @@ test.o: test.cc
 	$(CC) -g -c test.cc
 
 main.o: main.cc
-	$(CC) -g -c main.cc
+	$(CC) -c main.cc
 	
 Comparison.o: Comparison.cc
-	$(CC) -g -c Comparison.cc
+	$(CC) -c Comparison.cc
 	
 ComparisonEngine.o: ComparisonEngine.cc
-	$(CC) -g -c ComparisonEngine.cc
+	$(CC) -c ComparisonEngine.cc
 	
 DBFile.o: DBFile.cc
-	$(CC) -g -c DBFile.cc
+	$(CC) -c DBFile.cc
 
 File.o: File.cc
-	$(CC) -g -c File.cc
+	$(CC) -c File.cc
 
 Record.o: Record.cc
-	$(CC) -g -c Record.cc
+	$(CC) -c Record.cc
 
 Schema.o: Schema.cc
-	$(CC) -g -c Schema.cc
+	$(CC) -c Schema.cc
 	
 y.tab.o: Parser.y
 	yacc -d Parser.y

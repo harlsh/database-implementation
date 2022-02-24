@@ -35,12 +35,19 @@ void Page ::EmptyItOut()
 	{
 		Record temp;
 		if (!GetFirst(&temp))
+		{
 			break;
+		}
 	}
 
 	// reset the page size
 	curSizeInBytes = sizeof(int);
 	numRecs = 0;
+}
+
+int Page ::GetNumRecs()
+{
+	return numRecs;
 }
 
 int Page ::GetFirst(Record *firstOne)
@@ -74,7 +81,6 @@ int Page ::Append(Record *addMe)
 	{
 		return 0;
 	}
-
 	// move to the last record
 	myRecs->MoveToFinish();
 
@@ -82,7 +88,6 @@ int Page ::Append(Record *addMe)
 	curSizeInBytes += ((int *)b)[0];
 	myRecs->Insert(addMe);
 	numRecs++;
-
 	return 1;
 }
 
@@ -163,6 +168,11 @@ void Page ::FromBinary(char *bits)
 	delete temp;
 }
 
+TwoWayList<Record> *Page ::GetmyRecs()
+{
+	return myRecs;
+}
+
 File ::File()
 {
 }
@@ -233,20 +243,25 @@ void File ::AddPage(Page *addMe, off_t whichPage)
 	lseek(myFilDes, PAGE_SIZE * whichPage, SEEK_SET);
 	write(myFilDes, bits, PAGE_SIZE);
 	delete[] bits;
+
 #ifdef F_DEBUG
 	cerr << " File: curLength " << curLength << " whichPage " << whichPage << endl;
 #endif
 }
 
-void File ::Open(int fileLen, char *fName)
+int File ::Open(int fileLen, char *fName)
 {
 
 	// figure out the flags for the system open call
 	int mode;
 	if (fileLen == 0)
+	{
 		mode = O_TRUNC | O_RDWR | O_CREAT;
+	}
 	else
+	{
 		mode = O_RDWR;
+	}
 
 	// actually do the open
 	myFilDes = open(fName, mode, S_IRUSR | S_IWUSR);
@@ -258,8 +273,9 @@ void File ::Open(int fileLen, char *fName)
 	// see if there was an error
 	if (myFilDes < 0)
 	{
-		cerr << "BAD!  Open did not work for " << fName << "\n";
-		exit(1);
+		return 0;
+		// cerr << "BAD!  Open did not work for " << fName << "\n";
+		// exit (1);
 	}
 
 	// read in the buffer if needed
@@ -274,6 +290,7 @@ void File ::Open(int fileLen, char *fName)
 	{
 		curLength = 0;
 	}
+	return 1;
 }
 
 off_t File ::GetLength()
@@ -287,15 +304,18 @@ int File ::Close()
 	// write out the current length in pages
 	lseek(myFilDes, 0, SEEK_SET);
 	write(myFilDes, &curLength, sizeof(off_t));
-
 	// close the file
-	close(myFilDes);
-
+	int closeValue = close(myFilDes);
 	// and return the size
 	return curLength;
 }
 
-int File ::GetMyFileDes()
+int File ::GetmyFilDes()
 {
 	return myFilDes;
+}
+
+int File ::GetcurLength()
+{
+	return curLength;
 }

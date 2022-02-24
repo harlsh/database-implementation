@@ -15,7 +15,6 @@ class Page
 {
 private:
 	TwoWayList<Record> *myRecs;
-
 	int numRecs;
 	int curSizeInBytes;
 
@@ -31,6 +30,7 @@ public:
 	// records from it
 	void FromBinary(char *bits);
 
+	int GetNumRecs();
 	// the deletes the first record from a page and returns it; returns
 	// a zero if there were no records on the page
 	int GetFirst(Record *firstOne);
@@ -42,6 +42,8 @@ public:
 
 	// empty it out
 	void EmptyItOut();
+
+	TwoWayList<Record> *GetmyRecs();
 };
 
 class File
@@ -62,7 +64,7 @@ public:
 	// the file; if notNew is zero, then the file is created and any other
 	// file located at that location is erased.  Otherwise, the file is
 	// simply opened
-	void Open(int length, char *fName);
+	int Open(int length, char *fName);
 
 	// allows someone to explicitly get a specified page from the file
 	void GetPage(Page *putItHere, off_t whichPage);
@@ -75,7 +77,8 @@ public:
 	// closes the file and returns the file length (in number of pages)
 	int Close();
 
-	int GetMyFileDes();
-};
+	int GetmyFilDes();
 
+	int GetcurLength();
+};
 #endif

@@ -7,61 +7,125 @@
 #include "DBFile.h"
 #include "Defs.h"
 
-// stub file .. replace it with your own DBFile.cc
-
+// Class Constructor
 DBFile::DBFile()
 {
+    myFile = new File();
+    currentRecord = new Record();
+    myPage = new Page();
     pageWritten = true;
+    currentPageIndex = 0;
 }
 
+// Class Destructor
 DBFile::~DBFile()
 {
-    delete pFile;
-    delete pRecord;
-    delete pPage;
+    delete myFile;
+    delete currentRecord;
+    delete myPage;
 }
 
+/*
+Return Type: Integer
+1: Success
+0: Failure
+
+This function is used to create the file.
+
+*/
 int DBFile::Create(const char *f_path, fType f_type, void *startup)
 {
-    pFile->Open(0, f_path);
-    return pFile->GetMyFileDes() != 0;
+    char *newFPath = (char *)f_path;
+    myFile->Open(0, newFPath);
+    int temp = myFile->GetmyFilDes();
+    if (temp == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
 }
 
+/*
+Return Type: void
+
+This function bulk loads the DBFile instance from a text file, appending
+new data to it using the SuckNextRecord function from Record.h
+
+*/
 void DBFile::Load(Schema &f_schema, const char *loadpath)
 {
-    File *tempFile = fopen(loadpath, "r");
+    FILE *tempFile;
+    tempFile = fopen(loadpath, "r");
     if (tempFile == NULL)
     {
         cerr << "Given File Path " << loadpath << " is invalid." << endl;
         exit(1);
     }
-
-    Record tempRecord;
-    while (tempRecord.SuckNextRecord(&f_schema, tempFile) != 0)
-        Add(tempRecord);
-    fclose(tempFile);
+    else
+    {
+        Record tempRecord;
+        while (tempRecord.SuckNextRecord(&f_schema, tempFile) != 0)
+        {
+            Add(tempRecord);
+        }
+        fclose(tempFile);
+    }
 }
 
+/*
+Return Type: Integer
+1: Success
+0: Failure
+
+This function is used to open a file that has already been created and also that has been closed.
+*/
 int DBFile::Open(const char *f_path)
 {
-    return pFile->Open(1, f_path) != 0;
+    char *newFPath = (char *)f_path;
+    int temp = myFile->Open(1, newFPath);
+    if (temp == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
 }
 
+/*
+Return Type: void
+
+*/
 void DBFile::MoveFirst()
 {
-    if (pFile->GetLength() == 0)
+    if (myFile->GetLength() == 0)
     {
         cerr << "File is Empty" << endl;
         exit(1);
     }
-    pFile->GetPage(pPage, 0);
+    else
+    {
+        myFile->GetPage(myPage, 0);
+    }
 }
 
+/*
+Return Type: Integer
+1: Success
+0: Failure
+
+This function simply closes the file.
+
+*/
 int DBFile::Close()
 {
     if (pageWritten == false)
     {
-        off_t tempIndex = pFile->GetLength();
+        off_t tempIndex = myFile->GetLength();
         if (tempIndex == 0)
         {
             currentPageIndex = 0;
@@ -70,12 +134,12 @@ int DBFile::Close()
         {
             currentPageIndex = tempIndex - 1;
         }
-        pFile->AddPage(myPage, tempIndex);
-        pPage->EmptyItOut();
+        myFile->AddPage(myPage, tempIndex);
+        myPage->EmptyItOut();
     }
     pageWritten = true;
-    int temp1 = pFile->Close();
-    int closeValue = pFile->GetmyFilDes();
+    int temp1 = myFile->Close();
+    int closeValue = myFile->GetmyFilDes();
     if (closeValue == -1)
     {
         return 0;
@@ -86,26 +150,58 @@ int DBFile::Close()
     }
 }
 
+/*
+Return Type: void
+
+This function is used to add records to the end of the file.
+
+*/
 void DBFile::Add(Record &rec)
 {
+    int temp = myPage->Append(&rec);
+    if (temp == 0)
+    {
+        off_t tempIndex = myFile->GetLength();
+        if (tempIndex == 0)
+        {
+            currentPageIndex = 0;
+        }
+        else
+        {
+            currentPageIndex = tempIndex - 1;
+        }
+        myFile->AddPage(myPage, currentPageIndex);
+        myPage->EmptyItOut();
+        myPage->Append(&rec);
+    }
+    pageWritten = false;
 }
 
+/*
+Return Type: Integer
+1: Success
+0: Failure
+
+This function simply gets the next record from the file and returns it to
+the user.
+
+*/
 int DBFile::GetNext(Record &fetchme)
 {
-    while (pPage->GetFirst(&fetchme) != 1)
+    while (myPage->GetFirst(&fetchme) != 1)
     {
         off_t fileLength;
-        if (pFile->GetLength() == 0)
+        if (myFile->GetLength() == 0)
         {
             fileLength = 0;
         }
         else
         {
-            fileLength = pFile->GetLength() - 1;
+            fileLength = myFile->GetLength() - 1;
         }
         if (++currentPageIndex < fileLength)
         {
-            pFile->GetPage(pPage, currentPageIndex);
+            myFile->GetPage(myPage, currentPageIndex);
         }
         else
         {
@@ -115,6 +211,15 @@ int DBFile::GetNext(Record &fetchme)
     return 1;
 }
 
+/*
+Return Type: Integer
+1: Success
+0: Failure
+
+This function accepts a selection predicate and returns the next record
+in the file which is accepted by the selection predicate.
+
+*/
 int DBFile::GetNext(Record &fetchme, CNF &cnf, Record &literal)
 {
     ComparisonEngine cEngine;
@@ -128,12 +233,22 @@ int DBFile::GetNext(Record &fetchme, CNF &cnf, Record &literal)
     return 0;
 }
 
+/*
+Reture Type: File*
+
+Getter Method
+*/
 File *DBFile::GetFile()
 {
-    return pFile;
+    return myFile;
 }
 
+/*
+Reture Type: Page*
+
+Getter Method
+*/
 Page *DBFile::GetCurrentPage()
 {
-    return pPage;
+    return myPage;
 }
