@@ -29,6 +29,7 @@
 # Tables
 *.tbl
 *.bin
+*.bigq
 
 # Executables
 *.exe
