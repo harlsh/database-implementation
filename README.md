@@ -76,7 +76,7 @@ make clean
 make gtest
 ./gtest.out
 ```
-![enter image description here](https://i.ibb.co/LgmvxWn/Screenshot-2022-02-25-005636.png)
+![enter image description here](https://i.ibb.co/BNpWCwJ/Screenshot-2022-02-25-014620.png)
 
 ## Debugging
 It is super hard to debug `C++`, I had to repeated use valgrind and a bunch of print statements to make it through this one.
