@@ -1,6 +1,6 @@
 #include "BigQ.h"
 
-void* workerMain(void* arg) {
+void* WorkerThread(void* arg) {
     Payload* payload = (Payload*) arg;
     priority_queue<Run*, vector<Run*>, RunComparer> runQueue(payload->order);
     priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (payload->order);
@@ -81,7 +81,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
     payload->out = &out;
     payload->order = &sortorder;
     payload->runlen = runlen;
-    pthread_create(&worker, NULL, workerMain, (void*) payload);
+    pthread_create(&worker, NULL, WorkerThread, (void*) payload);
     pthread_join(worker, NULL);
 	out.ShutDown ();
 }

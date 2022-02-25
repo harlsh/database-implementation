@@ -65,7 +65,7 @@ typedef struct {
 	
 } Payload;
 
-void* workerMain(void* arg);
+void* WorkerThread(void* arg);
 
 void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
     priority_queue<Run*, vector<Run*>, RunComparer>& runQueue, File& file, Page& bufferPage, int& pageIndex);

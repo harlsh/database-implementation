@@ -22,7 +22,7 @@ In order to implement `BigQ`, I used a `Run` class and some workers to pop recor
 Updates the top record of current run.
 #### `Record *Run::topRecord;` 
 The actual top record of the current run.
-#### `void*  workerMain(void*  arg);` 
+#### `void*  WorkerThread(void*  arg);` 
 Retrieves records from input pipe, sorts them into runs and pushes them onto the priority queue. Also gets sorted records from priority queue to the output pipe. Most of the work in Project 2 is mainly this one function.
 #### `void*  recordQueueToRun(..);`
 Takes a sequence of pages of records, builds a run to hold all these pages and pushes the runs onto the priority queue.
