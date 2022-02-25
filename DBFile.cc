@@ -38,8 +38,7 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
     }
     FILE *tableFile = fopen (loadpath, "r");
     Record temp;
-    ComparisonEngine comp;
-
+    
     while (temp.SuckNextRecord (&f_schema, tableFile) == 1) {
             this->Add(temp);
     }
@@ -91,7 +90,7 @@ int DBFile::Close () {
 }
 void DBFile::Add (Record &rec) {
     if (isFileOpen == 0) {
-        cerr << "Cannot writing while file not opening!" << "\n";
+        cerr << "Cannot write while the file is not opening!" << "\n";
         return;
     }
     if (isWriting == 0) {
@@ -111,7 +110,7 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
     if (isFileOpen == 0) {
-        cerr << "Cannot reading while file not opening!" << "\n";
+        cerr << "Cannot read while file is not opening!" << "\n";
         return 0;
     }
     
