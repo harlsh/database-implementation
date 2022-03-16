@@ -1,30 +1,36 @@
 #include "BigQ.h"
+#include "DBFile.h"
 
-void* WorkerThread(void* arg) {
-    Payload* payload = (Payload*) arg;
-    priority_queue<Run*, vector<Run*>, RunComparer> runQueue(payload->order);
-    priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (payload->order);
+void* workerMain(void* arg) {
+    cout<<"begin workerMain" << endl;
+    WorkerArg* workerArg = (WorkerArg*) arg;
+    priority_queue<Run*, vector<Run*>, RunComparer> runQueue(workerArg->order);
+    priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (workerArg->order);
     vector<Record* > recBuff;
     Record curRecord;
 
+    //Set disk based file for sorting
     File file;
-    char* fileName = "storage.bin";
+    char* fileName = "tmp.bin";
     file.Open(0, fileName);
 
+    //Buffer page used for disk based file
     Page bufferPage;
     int pageIndex = 0;
     int pageCounter = 0;
-
-    while (payload->in->Remove(&curRecord) == 1) {
+    //Retrieve all records from input pipe
+    while (workerArg->in->Remove(&curRecord) == 1) {
         Record* tmpRecord = new Record;
         tmpRecord->Copy(&curRecord);
+        //Add to another page if current page is full
         if (bufferPage.Append(&curRecord) == 0) {
             pageCounter++;
             bufferPage.EmptyItOut();
 
-            if (pageCounter == payload->runlen) {
+            //Add to another run if current run is full
+            if (pageCounter == workerArg->runlen) {
                 recordQueueToRun(recordQueue, runQueue, file, bufferPage, pageIndex);
-                recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (payload->order);
+                recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (workerArg->order);
                 pageCounter = 0;
             }
 
@@ -33,23 +39,33 @@ void* WorkerThread(void* arg) {
 
         recordQueue.push(tmpRecord);
     }
+    // Handle the last run
     if (!recordQueue.empty()) {
         recordQueueToRun(recordQueue, runQueue, file, bufferPage, pageIndex);
-        recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (payload->order);
+        recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (workerArg->order);
     }
+    // Merge for all runs
+    DBFile dbFileHeap;
+    cout<< "1" << endl;
+    dbFileHeap.Create("tempDifFile.bin", heap, nullptr);
+    Record rec;
     while (!runQueue.empty()) {
         Run* run = runQueue.top();
         runQueue.pop();
-        payload->out->Insert(run->topRecord);
+        dbFileHeap.Add(*(run->topRecord));
+//        workerArg->out->Insert(run->topRecord);
         if (run->UpdateTopRecord() == 1) {
             runQueue.push(run);
         }
     }
+    dbFileHeap.Close();
     file.Close();
-    payload->out->ShutDown();
+    workerArg->out->ShutDown();
+    cout<<"end workerMain" << endl;
     return NULL;
 }
 
+//Used for puting records into a run, which is disk file based
 void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
     priority_queue<Run*, vector<Run*>, RunComparer>& runQueue, File& file, Page& bufferPage, int& pageIndex) {
 
@@ -75,15 +91,17 @@ void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>&
 
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
+    cout<< "begin BigQ" << endl;
     pthread_t worker;
-    Payload* payload = new Payload;
-    payload->in = &in;
-    payload->out = &out;
-    payload->order = &sortorder;
-    payload->runlen = runlen;
-    pthread_create(&worker, NULL, WorkerThread, (void*) payload);
-    pthread_join(worker, NULL);
-	out.ShutDown ();
+    //Construct arguement used for worker thread
+    WorkerArg* workerArg = new WorkerArg;
+    workerArg->in = &in;
+    workerArg->out = &out;
+    workerArg->order = &sortorder;
+    workerArg->runlen = runlen;
+    pthread_create(&worker, NULL, workerMain, (void*) workerArg);
+//    pthread_exit(NULL); //
+    cout<< "end BigQ" << endl;
 }
 
 BigQ::~BigQ () {
@@ -101,7 +119,9 @@ Run::Run(File* file, int start, int length) {
 }
 
 int Run::UpdateTopRecord() {
+    //if bufferPage is full
     if (bufferPage.GetFirst(topRecord) == 0) {
+        //if reach the last page
         curPage++;
         if (curPage == startPage + runLength) {
             return 0;
@@ -119,7 +139,9 @@ RecordComparer::RecordComparer(OrderMaker* orderMaker) {
 
 bool RecordComparer::operator () (Record* left, Record* right) {
     ComparisonEngine comparisonEngine;
-    return (comparisonEngine.Compare(left, right, order) >= 0);
+    if (comparisonEngine.Compare(left, right, order) >= 0)
+        return true;
+    return false;
 }
 
 RunComparer::RunComparer(OrderMaker* orderMaker) {
@@ -128,7 +150,9 @@ RunComparer::RunComparer(OrderMaker* orderMaker) {
 
 bool RunComparer::operator () (Run* left, Run* right) {
     ComparisonEngine comparisonEngine;
-    return (comparisonEngine.Compare(left->topRecord, right->topRecord, order) >= 0);
+    if (comparisonEngine.Compare(left->topRecord, right->topRecord, order) >= 0)
+        return true;
+    return false;
 }
 
 

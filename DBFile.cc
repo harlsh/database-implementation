@@ -5,135 +5,143 @@
 #include "Comparison.h"
 #include "ComparisonEngine.h"
 #include "DBFile.h"
+#include "DBFileHeap.h"
+#include "DBFileSorted.h"
+#include "DBFileTree.h"
 #include "Defs.h"
 #include <iostream>
-
+#include <fstream>
 // stub file .. replace it with your own DBFile.cc
 
 DBFile::DBFile () {
-    isFileOpen = 0;
-    isWriting = 0;
-    pageIndex = 0;
+
 }
 
-int DBFile::Create (const char *f_path, fType f_type, void *startup) {
-    if (isFileOpen == 1) {
-        cerr << "Cannot recreate file since file already opened!" << "\n";
-        return 0;
-    }
+int DBFile::Create (char *f_path, fType f_type, void *startup) {
+//    cout<< "DBFile Create" << endl;
+    char f_meta_name[100];
+    sprintf (f_meta_name, "%s.meta", f_path);
+    cout<<"meta data in "<<f_meta_name<<endl;
+    ofstream f_meta;
+    f_meta.open(f_meta_name);
+    OrderMaker* orderMaker = nullptr;
+    int runLength = 0;
+    // write in file type
     if(f_type == heap){
-        diskFile.Open(0, const_cast<char *>(f_path));
-        pageIndex = 0;
-        isWriting = 0;
-        isFileOpen = 1;
-        MoveFirst();
+        f_meta << "heap" << endl;
+        myInernalVar = new DBFileHeap();
     }
-    return 1;
+    else if(f_type==sorted){
+        f_meta << "sorted"<< endl;
+        myInernalVar = new DBFileSorted();
+    }
+    else if(f_type==tree){
+        f_meta << "tree"<< endl;
+        myInernalVar = new DBFileTree();
+    }
+    // write in orderMaker and runLength
+    if(startup!= nullptr) {
+        SortedInfo* sortedInfo = ((SortedInfo*)startup);
+        orderMaker = sortedInfo->myOrder;
+        runLength = sortedInfo->runLength;
+        f_meta << runLength << endl;
+        f_meta << orderMaker->numAtts << endl;
+        for (int i = 0; i < orderMaker->numAtts; i++) {
+            f_meta << orderMaker->whichAtts[i] << endl;
+            if (orderMaker->whichTypes[i] == Int)
+                f_meta << "Int" << endl;
+            else if (orderMaker->whichTypes[i] == Double)
+                f_meta << "Double" << endl;
+            else if(orderMaker->whichTypes[i] == String)
+                f_meta << "String" << endl;
+        }
+        // store orderMaker and runLength into subclass
+        if(f_type == heap){
+
+        }
+        else if(f_type==sorted){
+            ((DBFileSorted*)myInernalVar)->orderMaker = orderMaker;
+            ((DBFileSorted*)myInernalVar)->runLength = runLength;
+        }
+        else if(f_type==tree){
+
+        }
+    }
+    f_meta.close();
+    int res = myInernalVar->Create(f_path, f_type, startup);
+    return res;
+//    cout<< "end DBFile Create" << endl;
 }
 
-void DBFile::Load (Schema &f_schema, const char *loadpath) {
-    if (isFileOpen == 0) {
-        cerr << "Cannot loading while file not open!";
-        return;
-    }
-    FILE *tableFile = fopen (loadpath, "r");
-    Record temp;
-    
-    while (temp.SuckNextRecord (&f_schema, tableFile) == 1) {
-            this->Add(temp);
-    }
-    if (isWriting == 1)
-        diskFile.AddPage(&bufferPage, pageIndex);
+void DBFile::Load (Schema &f_schema, char *loadpath) {
+    myInernalVar->Load(f_schema, loadpath);
 }
 
-int DBFile::Open (const char *f_path) {
-    if (isFileOpen == 1) {
-        cerr << "File already opened!" << "\n";
-        return 0;
+int DBFile::Open (char *f_path) {
+    OrderMaker* orderMaker = new OrderMaker();
+    char f_meta_name[100];
+    sprintf (f_meta_name, "%s.meta", f_path);
+    ifstream f_meta(f_meta_name);
+
+    string s;
+    getline(f_meta, s);
+    if(s.compare("heap")==0){
+        myInernalVar = new DBFileHeap();
     }
-    diskFile.Open(1, const_cast<char *>(f_path));
-    pageIndex = 0;
-    
-    isWriting = 0;
-    isFileOpen = 1;
-    MoveFirst();
-    return 1;
+    else if(s.compare("sorted")==0){
+        myInernalVar = new DBFileSorted();
+        string temp;
+        getline(f_meta, temp);
+        int runLength = stoi(temp);
+        temp.clear();
+        getline(f_meta, temp);
+        orderMaker->numAtts = stoi(temp);
+        for(int i=0; i<orderMaker->numAtts; i++){
+            temp.clear();
+            getline(f_meta, temp);
+            orderMaker->whichAtts[i] = stoi(temp);
+            temp.clear();
+            getline(f_meta, temp);
+            if(temp.compare("Int")==0){
+                orderMaker->whichTypes[i] = Int;
+            }
+            else if(temp.compare("Double")==0){
+                orderMaker->whichTypes[i] = Double;
+            }
+            else if(temp.compare("String")==0){
+                orderMaker->whichTypes[i] = String;
+            }
+        }
+        ((DBFileSorted*)myInernalVar)->orderMaker = orderMaker;
+        ((DBFileSorted*)myInernalVar)->runLength = runLength;
+        orderMaker->Print();
+    }
+    else if(s.compare("tree")==0){
+        myInernalVar = new DBFileTree();
+    }
+    f_meta.close();
+    int res = myInernalVar->Open(f_path);
+    return res;
 }
 
 void DBFile::MoveFirst () {
-    if (isFileOpen == 0) {
-        cerr << "Cannot MoveFirst while file not opening!" << "\n";
-        return;
-    }
-    if (isWriting == 1) {
-        diskFile.AddPage(&bufferPage, pageIndex);
-        isWriting = 0;
-    }
-    pageIndex = 0;
-    bufferPage.EmptyItOut();
-    
-    if (diskFile.GetLength() > 0) {
-        diskFile.GetPage(&bufferPage, pageIndex);
-    }
+    myInernalVar->MoveFirst();
 }
+
 int DBFile::Close () {
-    if (isFileOpen == 0) {
-        cerr << "File is not opened!" << "\n";
-        return 0;
-    }
-    if (isWriting == 1)
-        diskFile.AddPage(&bufferPage, pageIndex);
-    bufferPage.EmptyItOut();
-    diskFile.Close();
-    isFileOpen = 0;
-    return 1;
+    int res = myInernalVar->Close();
+    delete myInernalVar;
+    return res;
 }
+
 void DBFile::Add (Record &rec) {
-    if (isFileOpen == 0) {
-        cerr << "Cannot write while the file is not opening!" << "\n";
-        return;
-    }
-    if (isWriting == 0) {
-        bufferPage.EmptyItOut();
-        if (diskFile.GetLength() > 0) {
-            diskFile.GetPage(&bufferPage, diskFile.GetLength() - 2);
-            pageIndex = diskFile.GetLength() - 2;
-        }
-        isWriting = 1;
-    }
-    if (bufferPage.Append(&rec) == 0) {
-        diskFile.AddPage(&bufferPage, pageIndex++);
-        bufferPage.EmptyItOut();
-        bufferPage.Append(&rec);
-    }
+    myInernalVar->Add(rec);
 }
 
 int DBFile::GetNext (Record &fetchme) {
-    if (isFileOpen == 0) {
-        cerr << "Cannot read while file is not opening!" << "\n";
-        return 0;
-    }
-    
-    if (isWriting == 1) {
-        MoveFirst();
-    }
-    if (bufferPage.GetFirst(&fetchme) == 0) {
-        pageIndex++;
-        if (pageIndex >= diskFile.GetLength() - 1) {
-            return 0;
-        }
-        bufferPage.EmptyItOut();
-        diskFile.GetPage(&bufferPage, pageIndex);
-        bufferPage.GetFirst(&fetchme);
-    }
-    return 1;
+    return myInernalVar->GetNext(fetchme);
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
-    ComparisonEngine comp;
-    while (GetNext(fetchme) == 1) {
-        if (comp.Compare(&fetchme, &literal, &cnf) == 1)
-            return 1;
-    }
-    return 0;
+    return myInernalVar->GetNext(fetchme, cnf, literal);
 }

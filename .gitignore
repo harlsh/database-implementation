@@ -30,6 +30,7 @@
 *.tbl
 *.bin
 *.bigq
+*.meta
 
 # Executables
 *.exe
