@@ -1,6 +1,3 @@
-//
-// Created by LJJ on 2/24/21.
-//
 
 #include "TwoWayList.h"
 #include "Record.h"

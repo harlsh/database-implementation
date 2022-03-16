@@ -8,8 +8,8 @@ ifdef linux
 tag = -n
 endif
 
-test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o DBFileGeneric.o DBFileHeap.o DBFileSorted.o DBFileTree.o Pipe.o y.tab.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o DBFileGeneric.o DBFileHeap.o DBFileSorted.o DBFileTree.o Pipe.o y.tab.o lex.yy.o test.o -lpthread #-lfl
+test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o DBFileHeap.o DBFileSorted.o DBFileTree.o Pipe.o y.tab.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o DBFileHeap.o DBFileSorted.o DBFileTree.o Pipe.o y.tab.o lex.yy.o test.o -lpthread #-lfl
 
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
 	$(CC) -o main.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -lpthread #-lfl
@@ -52,9 +52,6 @@ BigQ.o: BigQ.cc
 
 DBFile.o: DBFile.cc
 	$(CC) -g -c DBFile.cc
-
-DBFileGeneric.o: DBFileGeneric.cc
-	$(CC) -g -c DBFileGeneric.cc
 
 DBFileHeap.o: DBFileHeap.cc
 	$(CC) -g -c DBFileHeap.cc
