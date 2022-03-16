@@ -1,7 +1,8 @@
 #include "BigQ.h"
+#include "DBFile.h"
 
-void* workerMain(void* arg) {
-    WorkerArg* workerArg = (WorkerArg*) arg;
+void* WorkerThread(void* arg) {
+    Payload* workerArg = (Payload*) arg;
     priority_queue<Run*, vector<Run*>, RunComparer> runQueue(workerArg->order);
     priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (workerArg->order);
     vector<Record* > recBuff;
@@ -43,16 +44,22 @@ void* workerMain(void* arg) {
         recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (workerArg->order);
     }
     // Merge for all runs
+    DBFile dbFileHeap;
+    dbFileHeap.Create("tempDifFile.bin", heap, nullptr);
+    Record rec;
     while (!runQueue.empty()) {
         Run* run = runQueue.top();
         runQueue.pop();
-        workerArg->out->Insert(run->topRecord);
+        dbFileHeap.Add(*(run->topRecord));
+//        workerArg->out->Insert(run->topRecord);
         if (run->UpdateTopRecord() == 1) {
             runQueue.push(run);
         }
     }
+    dbFileHeap.Close();
     file.Close();
     workerArg->out->ShutDown();
+    cout<<"end workerMain" << endl;
     return NULL;
 }
 
@@ -82,16 +89,15 @@ void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>&
 
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
+    cout<< "begin BigQ" << endl;
     pthread_t worker;
     //Construct arguement used for worker thread
-    WorkerArg* workerArg = new WorkerArg;
-    workerArg->in = &in;
-    workerArg->out = &out;
-    workerArg->order = &sortorder;
-    workerArg->runlen = runlen;
-    pthread_create(&worker, NULL, workerMain, (void*) workerArg);
-    pthread_join(worker, NULL);
-	out.ShutDown ();
+    Payload* payload = new Payload;
+    payload->in = &in;
+    payload->out = &out;
+    payload->order = &sortorder;
+    payload->runlen = runlen;
+    pthread_create(&worker, NULL, WorkerThread, (void*) payload);
 }
 
 BigQ::~BigQ () {
@@ -111,7 +117,6 @@ Run::Run(File* file, int start, int length) {
 int Run::UpdateTopRecord() {
     //if bufferPage is full
     if (bufferPage.GetFirst(topRecord) == 0) {
-        //if reach the last page
         curPage++;
         if (curPage == startPage + runLength) {
             return 0;

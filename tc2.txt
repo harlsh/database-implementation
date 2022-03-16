@@ -1,4 +1,2 @@
+2
 3
-3
-16
-(c_phone) AND (c_custkey)

@@ -1,4 +1,3 @@
-2
-6
-128
-(o_totalprice) AND (o_custkey)
+3
+3
+(c_phone > '34-999-195-7029') AND (c_mktsegment = 'FURNITURE')
