@@ -30,7 +30,7 @@ public:
 
 class DBFile {
 private:
-    DBFileGeneric* myInernalVar;
+    DBFileGeneric* myInternalVar;
 
 public:
 	DBFile (); 

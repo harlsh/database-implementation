@@ -1,9 +1,8 @@
 #include "BigQ.h"
 #include "DBFile.h"
 
-void* workerMain(void* arg) {
-    cout<<"begin workerMain" << endl;
-    WorkerArg* workerArg = (WorkerArg*) arg;
+void* WorkerThread(void* arg) {
+    Payload* workerArg = (Payload*) arg;
     priority_queue<Run*, vector<Run*>, RunComparer> runQueue(workerArg->order);
     priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (workerArg->order);
     vector<Record* > recBuff;
@@ -46,7 +45,6 @@ void* workerMain(void* arg) {
     }
     // Merge for all runs
     DBFile dbFileHeap;
-    cout<< "1" << endl;
     dbFileHeap.Create("tempDifFile.bin", heap, nullptr);
     Record rec;
     while (!runQueue.empty()) {
@@ -94,14 +92,12 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
     cout<< "begin BigQ" << endl;
     pthread_t worker;
     //Construct arguement used for worker thread
-    WorkerArg* workerArg = new WorkerArg;
-    workerArg->in = &in;
-    workerArg->out = &out;
-    workerArg->order = &sortorder;
-    workerArg->runlen = runlen;
-    pthread_create(&worker, NULL, workerMain, (void*) workerArg);
-//    pthread_exit(NULL); //
-    cout<< "end BigQ" << endl;
+    Payload* payload = new Payload;
+    payload->in = &in;
+    payload->out = &out;
+    payload->order = &sortorder;
+    payload->runlen = runlen;
+    pthread_create(&worker, NULL, WorkerThread, (void*) payload);
 }
 
 BigQ::~BigQ () {
@@ -121,7 +117,6 @@ Run::Run(File* file, int start, int length) {
 int Run::UpdateTopRecord() {
     //if bufferPage is full
     if (bufferPage.GetFirst(topRecord) == 0) {
-        //if reach the last page
         curPage++;
         if (curPage == startPage + runLength) {
             return 0;

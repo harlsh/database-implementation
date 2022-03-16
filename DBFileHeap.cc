@@ -18,7 +18,7 @@ DBFileHeap::DBFileHeap () {
 
 int DBFileHeap::Create (char *f_path, fType f_type, void *startup) {
     if (isFileOpen == 1) {
-        cerr << "Cannot recreate file since file already opened!" << "\n";
+        cerr << "Cannot recreate file since it's already open!" << "\n";
         return 0;
     }
     diskFile.Open(0, const_cast<char *>(f_path));
@@ -61,7 +61,7 @@ int DBFileHeap::Open (char *f_path) {
 
 void DBFileHeap::MoveFirst () {
     if (isFileOpen == 0) {
-        cerr << "Cannot MoveFirst while file not opening!" << "\n";
+        cerr << "Cannot MoveFirst when the file is not open!" << "\n";
         return;
     }
     if (isWriting == 1) {
@@ -86,13 +86,12 @@ int DBFileHeap::Close () {
     bufferPage.EmptyItOut();
     diskFile.Close();
     isFileOpen = 0;
-    // cout << "Closing file, length of file is " << diskFile.GetLength() << "Pages" << "\n";
     return 1;
 }
 
 void DBFileHeap::Add (Record &rec) {
     if (isFileOpen == 0) {
-        cerr << "Cannot writing while file not opening!" << "\n";
+        cerr << "Cannot write while the file is not opening!" << "\n";
         return;
     }
     //If file is reading, then empty buffer page and redirect to last page of file

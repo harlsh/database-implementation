@@ -2,7 +2,7 @@
 CC = g++ -std=c++11 -Wno-deprecated
 
 tag = -i
-gtest_tag = -std=c++11 -lgtest -lgtest_main
+gtest_tag = -std=c++11 -lgtest -lgtest_main -pthread
 
 ifdef linux
 tag = -n
@@ -24,7 +24,7 @@ gtest: Record.o Comparison.o ComparisonEngine.o Schema.o File.o Pipe.o y.tab.o l
 	$(CC) -o gtest.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o Pipe.o y.tab.o lex.yy.o gtest.o $(gtest_tag)
 
 gtest.o: gtest.cpp
-	$(CC) -g -c gtest.cpp $(gtest_tag)
+	$(CC) -pthread -g -c gtest.cpp $(gtest_tag)
 
 test.o: test.cc
 	$(CC) -g -c test.cc

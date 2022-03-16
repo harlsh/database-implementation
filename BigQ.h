@@ -68,12 +68,12 @@ typedef struct {
 	OrderMaker *order;
 	int runlen;
 	
-} WorkerArg;
+} Payload;
 
 //Main method executed by worker, worker will retrieve records from input pipe, 
 //sort records into runs and puting all runs into priority queue, and geting sorted reecords
 //from priority queue to output pipe
-void* workerMain(void* arg);
+void* WorkerThread(void* arg);
 
 //Used for take sequences of pages of records, and construct a run to hold such records, and put run
 //into priority queue

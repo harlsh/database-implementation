@@ -21,13 +21,11 @@ DBFileSorted::DBFileSorted () {
 }
 
 int DBFileSorted::Create (char *f_path, fType f_type, void *startup) {
-    cout<<"begin c Create"<<endl;
     diskFile.Open(0, const_cast<char *>(f_path));
     out_path = f_path;
     pageIndex = 0;
     isWriting = 0;
     MoveFirst();
-    cout<<"end Create" << endl;
     return 1;
 }
 
@@ -185,13 +183,13 @@ void DBFileSorted::writeMode(){
     //    pthread_create (thread2, NULL, consumer, (void*)&arg2);
     //    bigQ = new BigQ(*in, *out, *orderMaker, runLength);
         //Construct arguement used for worker thread
-        WorkerArg *workerArg = new WorkerArg;
+        Payload *workerArg = new Payload;
         workerArg->in = in;
         workerArg->out = out;
         workerArg->order = orderMaker;
         workerArg->runlen = runLength;
         thread = new pthread_t();
-        pthread_create(thread, NULL, workerMain, (void *) workerArg);
+        pthread_create(thread, NULL, WorkerThread, (void *) workerArg);
         cout << "end writeMode " << endl;
     }
 }

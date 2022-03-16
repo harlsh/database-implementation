@@ -11,33 +11,30 @@
 #include "Defs.h"
 #include <iostream>
 #include <fstream>
-// stub file .. replace it with your own DBFile.cc
 
 DBFile::DBFile () {
 
 }
 
 int DBFile::Create (char *f_path, fType f_type, void *startup) {
-//    cout<< "DBFile Create" << endl;
     char f_meta_name[100];
     sprintf (f_meta_name, "%s.meta", f_path);
-    cout<<"meta data in "<<f_meta_name<<endl;
+    cout<<"Meta data := "<<f_meta_name<<endl;
     ofstream f_meta;
     f_meta.open(f_meta_name);
     OrderMaker* orderMaker = nullptr;
     int runLength = 0;
-    // write in file type
     if(f_type == heap){
         f_meta << "heap" << endl;
-        myInernalVar = new DBFileHeap();
+        myInternalVar = new DBFileHeap();
     }
     else if(f_type==sorted){
         f_meta << "sorted"<< endl;
-        myInernalVar = new DBFileSorted();
+        myInternalVar = new DBFileSorted();
     }
     else if(f_type==tree){
         f_meta << "tree"<< endl;
-        myInernalVar = new DBFileTree();
+        myInternalVar = new DBFileTree();
     }
     // write in orderMaker and runLength
     if(startup!= nullptr) {
@@ -60,21 +57,20 @@ int DBFile::Create (char *f_path, fType f_type, void *startup) {
 
         }
         else if(f_type==sorted){
-            ((DBFileSorted*)myInernalVar)->orderMaker = orderMaker;
-            ((DBFileSorted*)myInernalVar)->runLength = runLength;
+            ((DBFileSorted*)myInternalVar)->orderMaker = orderMaker;
+            ((DBFileSorted*)myInternalVar)->runLength = runLength;
         }
         else if(f_type==tree){
 
         }
     }
     f_meta.close();
-    int res = myInernalVar->Create(f_path, f_type, startup);
+    int res = myInternalVar->Create(f_path, f_type, startup);
     return res;
-//    cout<< "end DBFile Create" << endl;
 }
 
 void DBFile::Load (Schema &f_schema, char *loadpath) {
-    myInernalVar->Load(f_schema, loadpath);
+    myInternalVar->Load(f_schema, loadpath);
 }
 
 int DBFile::Open (char *f_path) {
@@ -86,10 +82,10 @@ int DBFile::Open (char *f_path) {
     string s;
     getline(f_meta, s);
     if(s.compare("heap")==0){
-        myInernalVar = new DBFileHeap();
+        myInternalVar = new DBFileHeap();
     }
     else if(s.compare("sorted")==0){
-        myInernalVar = new DBFileSorted();
+        myInternalVar = new DBFileSorted();
         string temp;
         getline(f_meta, temp);
         int runLength = stoi(temp);
@@ -112,36 +108,36 @@ int DBFile::Open (char *f_path) {
                 orderMaker->whichTypes[i] = String;
             }
         }
-        ((DBFileSorted*)myInernalVar)->orderMaker = orderMaker;
-        ((DBFileSorted*)myInernalVar)->runLength = runLength;
+        ((DBFileSorted*)myInternalVar)->orderMaker = orderMaker;
+        ((DBFileSorted*)myInternalVar)->runLength = runLength;
         orderMaker->Print();
     }
     else if(s.compare("tree")==0){
-        myInernalVar = new DBFileTree();
+        myInternalVar = new DBFileTree();
     }
     f_meta.close();
-    int res = myInernalVar->Open(f_path);
+    int res = myInternalVar->Open(f_path);
     return res;
 }
 
 void DBFile::MoveFirst () {
-    myInernalVar->MoveFirst();
+    myInternalVar->MoveFirst();
 }
 
 int DBFile::Close () {
-    int res = myInernalVar->Close();
-    delete myInernalVar;
+    int res = myInternalVar->Close();
+    delete myInternalVar;
     return res;
 }
 
 void DBFile::Add (Record &rec) {
-    myInernalVar->Add(rec);
+    myInternalVar->Add(rec);
 }
 
 int DBFile::GetNext (Record &fetchme) {
-    return myInernalVar->GetNext(fetchme);
+    return myInternalVar->GetNext(fetchme);
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
-    return myInernalVar->GetNext(fetchme, cnf, literal);
+    return myInternalVar->GetNext(fetchme, cnf, literal);
 }
