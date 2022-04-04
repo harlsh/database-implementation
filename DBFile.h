@@ -7,6 +7,7 @@
 #include "File.h"
 #include "Comparison.h"
 #include "ComparisonEngine.h"
+#include "DBFileGeneric.h"
 
 typedef enum {heap, sorted, tree} fType;
 typedef struct {OrderMaker *myOrder; int runLength;} SortedInfo;
@@ -30,7 +31,7 @@ public:
 
 class DBFile {
 private:
-    DBFileGeneric* myInternalVar;
+    DBFileGeneric* myInernalVar;
 
 public:
 	DBFile (); 

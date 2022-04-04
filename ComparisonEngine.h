@@ -14,6 +14,7 @@ class OrderMaker;
 class CNF;
 
 class ComparisonEngine {
+
 private:
 
 	int Run(Record *left, Record *literal, Comparison *c);
