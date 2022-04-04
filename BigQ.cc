@@ -1,24 +1,28 @@
 #include "BigQ.h"
 #include "DBFile.h"
 
-void* WorkerThread(void* arg) {
-    Payload* workerArg = (Payload*) arg;
-    priority_queue<Run*, vector<Run*>, RunComparer> runQueue(workerArg->order);
-    priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (workerArg->order);
+void* workerMain(void* arg) {
+    ((BigQ*) arg)->BigQMain();
+    return NULL;
+}
+
+void BigQ::BigQMain() {
+    priority_queue<Run*, vector<Run*>, RunComparer> runQueue(this->order);
+    priority_queue<Record*, vector<Record*>, RecordComparer> recordQueue (this->order);
     vector<Record* > recBuff;
     Record curRecord;
 
     //Set disk based file for sorting
     File file;
-    char* fileName = "tmp.bin";
+    char* fileName = new char[100];
+    sprintf(fileName, "%d.bin", pthread_self());
     file.Open(0, fileName);
-
     //Buffer page used for disk based file
     Page bufferPage;
     int pageIndex = 0;
     int pageCounter = 0;
     //Retrieve all records from input pipe
-    while (workerArg->in->Remove(&curRecord) == 1) {
+    while (this->in->Remove(&curRecord) == 1) {
         Record* tmpRecord = new Record;
         tmpRecord->Copy(&curRecord);
         //Add to another page if current page is full
@@ -27,9 +31,9 @@ void* WorkerThread(void* arg) {
             bufferPage.EmptyItOut();
 
             //Add to another run if current run is full
-            if (pageCounter == workerArg->runlen) {
+            if (pageCounter == this->runlen) {
                 recordQueueToRun(recordQueue, runQueue, file, bufferPage, pageIndex);
-                recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (workerArg->order);
+                recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (this->order);
                 pageCounter = 0;
             }
 
@@ -41,30 +45,35 @@ void* WorkerThread(void* arg) {
     // Handle the last run
     if (!recordQueue.empty()) {
         recordQueueToRun(recordQueue, runQueue, file, bufferPage, pageIndex);
-        recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (workerArg->order);
+        recordQueue = priority_queue<Record*, vector<Record*>, RecordComparer> (this->order);
     }
     // Merge for all runs
-    DBFile dbFileHeap;
-    dbFileHeap.Create("tempDifFile.bin", heap, nullptr);
-    Record rec;
+    // DBFile dbFileHeap;
+    // dbFileHeap.Create("tempDifFile.bin", heap, nullptr);
+    Run* run;
+    Schema schema ("catalog", "supplier");
+//    cout << "2" << endl;
     while (!runQueue.empty()) {
-        Run* run = runQueue.top();
+        run = runQueue.top();
         runQueue.pop();
-        dbFileHeap.Add(*(run->topRecord));
-//        workerArg->out->Insert(run->topRecord);
+        // dbFileHeap.Add(*(run->topRecord));
+        Record* waitToInsert = new Record();
+        waitToInsert->Copy(run->topRecord);
+        // waitToInsert->Print(&schema);
+        this->out->Insert(waitToInsert);
         if (run->UpdateTopRecord() == 1) {
             runQueue.push(run);
         }
     }
-    dbFileHeap.Close();
+//    cout << "3" << endl;
+    // dbFileHeap.Close();
     file.Close();
-    workerArg->out->ShutDown();
-    cout<<"end workerMain" << endl;
-    return NULL;
+    this->out->ShutDown();
+    remove(fileName);
 }
 
 //Used for puting records into a run, which is disk file based
-void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
+void BigQ::recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
     priority_queue<Run*, vector<Run*>, RunComparer>& runQueue, File& file, Page& bufferPage, int& pageIndex) {
 
     bufferPage.EmptyItOut();
@@ -83,21 +92,20 @@ void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>&
     bufferPage.EmptyItOut();
     Run* run = new Run(&file, startIndex, pageIndex - startIndex);
     runQueue.push(run);
-    return NULL;
 }
 
 
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
-    cout<< "begin BigQ" << endl;
     pthread_t worker;
     //Construct arguement used for worker thread
-    Payload* payload = new Payload;
-    payload->in = &in;
-    payload->out = &out;
-    payload->order = &sortorder;
-    payload->runlen = runlen;
-    pthread_create(&worker, NULL, WorkerThread, (void*) payload);
+    // this* this = new this;
+    this->in = &in;
+    this->out = &out;
+    this->order = &sortorder;
+    this->runlen = runlen;
+    pthread_create(&worker, NULL, workerMain, (void*) this);
+    // pthread_join(worker, NULL);
 }
 
 BigQ::~BigQ () {
@@ -117,8 +125,9 @@ Run::Run(File* file, int start, int length) {
 int Run::UpdateTopRecord() {
     //if bufferPage is full
     if (bufferPage.GetFirst(topRecord) == 0) {
+        //if reach the last page
         curPage++;
-        if (curPage == startPage + runLength) {
+        if (curPage >= startPage + runLength) {
             return 0;
         }
         bufferPage.EmptyItOut();

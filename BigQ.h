@@ -9,14 +9,6 @@
 
 using namespace std;
 
-class BigQ {
-
-public:
-
-	BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen);
-	~BigQ ();
-
-};
 
 //Class run represent run used for merging
 class Run {
@@ -68,16 +60,33 @@ typedef struct {
 	OrderMaker *order;
 	int runlen;
 	
-} Payload;
+} WorkerArg;
 
 //Main method executed by worker, worker will retrieve records from input pipe, 
 //sort records into runs and puting all runs into priority queue, and geting sorted reecords
 //from priority queue to output pipe
-void* WorkerThread(void* arg);
+void* workerMain(void* arg);
 
 //Used for take sequences of pages of records, and construct a run to hold such records, and put run
 //into priority queue
-void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
+// void* recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
+//     priority_queue<Run*, vector<Run*>, RunComparer>& runQueue, File& file, Page& bufferPage, int& pageIndex);
+class BigQ {
+
+public:
+
+	BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen);
+	~BigQ ();
+	void BigQMain();
+	void recordQueueToRun(priority_queue<Record*, vector<Record*>, RecordComparer>& recordQueue, 
     priority_queue<Run*, vector<Run*>, RunComparer>& runQueue, File& file, Page& bufferPage, int& pageIndex);
 
+
+private:
+	Pipe *in;
+	Pipe *out;
+	OrderMaker *order;
+	int runlen;
+
+};
 #endif

@@ -1,6 +1,7 @@
 #include "Pipe.h"
-#include <stdlib.h>
+
 #include <iostream> 
+#include <stdlib.h>
 
 Pipe :: Pipe (int bufferSize) {
 
@@ -66,7 +67,7 @@ void Pipe :: Insert (Record *insertMe) {
 
 
 int Pipe :: Remove (Record *removeMe) {
-
+	 
 	// first, get a mutex on the pipeline
 	pthread_mutex_lock (&pipeMutex);
 
