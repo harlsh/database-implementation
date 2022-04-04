@@ -1,6 +1,4 @@
-//
-// Created by LJJ on 3/18/21.
-//
+
 #include "DBFile.h"
 
 #define N 3
